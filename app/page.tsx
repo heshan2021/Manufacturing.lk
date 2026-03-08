@@ -2,14 +2,14 @@
 
 import { useState, useMemo, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import Link from "next/link" // <-- ADDED FOR SEO ROUTING
+import Link from "next/link"
 import { supabase } from "@/lib/supabase" 
 import { HeroSearch } from "@/components/hero-search"
 import { FactoryCard } from "@/components/factory-card"
 import { FilterSidebar } from "@/components/filter-sidebar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { SlidersHorizontal, Package } from "lucide-react"
+import { SlidersHorizontal, Package, Star } from "lucide-react" // Added Star icon
 import { toast } from "sonner"
 
 interface Filters {
@@ -22,6 +22,7 @@ interface Filters {
 function HomeContent() {
   const searchParams = useSearchParams()
   const [factories, setFactories] = useState<any[]>([])
+  const [loading, setLoading] = useState(true) // Added loading state
   const [searchQuery, setSearchQuery] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
   const [filters, setFilters] = useState<Filters>({
@@ -35,6 +36,7 @@ function HomeContent() {
   // 1. Fetch live data from Supabase
   useEffect(() => {
     const loadData = async () => {
+      setLoading(true)
       const { data, error } = await supabase
         .from('factories')
         .select('*')
@@ -43,6 +45,7 @@ function HomeContent() {
 
       if (data) setFactories(data);
       if (error) console.error("Error fetching factories:", error);
+      setLoading(false)
     };
 
     loadData();
@@ -70,7 +73,6 @@ function HomeContent() {
 
   const filteredFactories = useMemo(() => {
     return factories.filter((factory) => {
-      // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
         const matchesSearch =
@@ -82,17 +84,14 @@ function HomeContent() {
         if (!matchesSearch) return false
       }
 
-      // Industry filter
       if (filters.industries.length > 0) {
         if (!filters.industries.includes(factory.industry)) return false
       }
 
-      // District filter
       if (filters.districts.length > 0) {
         if (!filters.districts.includes(factory.district)) return false
       }
 
-      // MOQ Range filter
       if (filters.moqRange) {
         const minMoq = Math.min(...(factory.products?.map((p: any) => p.moq) || [0]))
         const [min, max] = filters.moqRange.split("-").map((v) => {
@@ -102,7 +101,6 @@ function HomeContent() {
         if (minMoq < min || minMoq > max) return false
       }
 
-      // Certifications filter
       if (filters.certifications.length > 0) {
         const hasAllCerts = filters.certifications.every((cert) =>
           factory.certifications?.includes(cert)
@@ -113,6 +111,13 @@ function HomeContent() {
       return true
     })
   }, [factories, searchQuery, filters])
+
+  // Get only verified factories for the "Featured" section on the home screen
+  const featuredFactories = useMemo(() => {
+    return factories
+      .filter(f => f.is_verified)
+      .slice(0, 6)
+  }, [factories])
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query)
@@ -126,7 +131,7 @@ function HomeContent() {
     filters.certifications.length
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <HeroSearch
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
@@ -136,7 +141,7 @@ function HomeContent() {
         onLogoClick={resetSearch}
       />
 
-      {hasSearched && (
+      {hasSearched ? (
         <div className="container mx-auto px-4 py-6">
           <div className="flex gap-6">
             <aside className="hidden lg:block w-72 shrink-0">
@@ -168,13 +173,11 @@ function HomeContent() {
               {filteredFactories.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredFactories.map((factory) => (
-                    // <-- WRAPPED IN LINK USING THE NEW DATABASE SLUG -->
                     <Link 
                       href={`/factory/${factory.slug || factory.id}`} 
                       key={factory.id} 
                       className="block transition-transform hover:-translate-y-1"
                     >
-                      {/* Passing empty onClick since Link handles navigation now */}
                       <FactoryCard factory={factory} onClick={() => {}} />
                     </Link>
                   ))}
@@ -189,25 +192,36 @@ function HomeContent() {
             </div>
           </div>
         </div>
-      )}
-
-      {!hasSearched && (
+      ) : (
         <div className="container mx-auto px-4 py-12">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">Featured Manufacturers</h2>
-            <p className="text-muted-foreground">Discover verified factories across Sri Lanka</p>
+            <div className="flex items-center justify-center gap-2 mb-2">
+                <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                <h2 className="text-2xl font-bold">Featured Manufacturers</h2>
+            </div>
+            <p className="text-muted-foreground">Discover top-rated verified factories across Sri Lanka</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            {factories.filter(f => f.is_verified).slice(0, 6).map((factory) => (
-              // <-- WRAPPED IN LINK USING THE NEW DATABASE SLUG -->
-              <Link 
-                href={`/factory/${factory.slug || factory.id}`} 
-                key={factory.id} 
-                className="block transition-transform hover:-translate-y-1"
-              >
-                <FactoryCard factory={factory} onClick={() => {}} />
-              </Link>
-            ))}
+          
+          {loading ? (
+            <div className="text-center py-12">Loading listings...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+              {featuredFactories.map((factory) => (
+                <Link 
+                  href={`/factory/${factory.slug || factory.id}`} 
+                  key={factory.id} 
+                  className="block transition-transform hover:-translate-y-1"
+                >
+                  <FactoryCard factory={factory} onClick={() => {}} />
+                </Link>
+              ))}
+            </div>
+          )}
+          
+          <div className="mt-12 text-center">
+             <Button variant="secondary" onClick={() => setHasSearched(true)}>
+                View All Manufacturers
+             </Button>
           </div>
         </div>
       )}
@@ -217,10 +231,10 @@ function HomeContent() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-primary" />
-              <span className="font-semibold text-foreground">Manufacturing.lk</span>
+              <span className="font-semibold text-foreground text-lg">Manufacturing.lk</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Manufacturing.lk. Sri Lanka&apos;s B2B Manufacturing Directory.
+              © {new Date().getFullYear()} Manufacturing.lk. Sri Lanka&apos;s leading B2B Directory.
             </p>
           </div>
         </div>
@@ -229,7 +243,6 @@ function HomeContent() {
   )
 }
 
-// Wrapper to provide Suspense for searchParams
 export default function Home() {
   return (
     <Suspense fallback={<div>Loading directory...</div>}>
