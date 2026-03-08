@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { factories, Factory } from "@/lib/factories-data"
+import { useState, useMemo, useEffect } from "react"
+import { factories as localFactories, Factory } from "@/lib/factories-data"
+import { fetchFactories } from "@/lib/factories-api"
 import { HeroSearch } from "@/components/hero-search"
 import { FactoryCard } from "@/components/factory-card"
 import { FilterSidebar } from "@/components/filter-sidebar"
@@ -18,6 +19,7 @@ interface Filters {
 }
 
 export default function Home() {
+  const [factories, setFactories] = useState<Factory[]>(localFactories)
   const [searchQuery, setSearchQuery] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
   const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null)
@@ -28,6 +30,24 @@ export default function Home() {
     certifications: [],
   })
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+
+  const resetSearch = () => {
+    setSearchQuery("")
+    setHasSearched(false)
+    setSelectedFactory(null)
+    setFilters({
+      industries: [],
+      districts: [],
+      moqRange: null,
+      certifications: [],
+    })
+  }
+
+  useEffect(() => {
+    fetchFactories().then((data) => {
+      if (data.length > 0) setFactories(data)
+    })
+  }, [])
 
   const filteredFactories = useMemo(() => {
     return factories.filter((factory) => {
@@ -73,7 +93,7 @@ export default function Home() {
 
       return true
     })
-  }, [searchQuery, filters])
+  }, [factories, searchQuery, filters])
 
   const handleSearch = () => {
     setHasSearched(true)
@@ -110,6 +130,7 @@ export default function Home() {
         onSearchSubmit={handleSearch}
         resultsCount={filteredFactories.length}
         showResults={hasSearched}
+        onLogoClick={resetSearch}
       />
 
       {/* Main Content */}
@@ -177,13 +198,7 @@ export default function Home() {
                     variant="outline"
                     className="mt-4 border-border text-foreground"
                     onClick={() => {
-                      setSearchQuery("")
-                      setFilters({
-                        industries: [],
-                        districts: [],
-                        moqRange: null,
-                        certifications: [],
-                      })
+                      resetSearch()
                     }}
                   >
                     Clear all filters

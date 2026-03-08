@@ -35,8 +35,27 @@ interface FactoryDetailProps {
 export function FactoryDetail({ factory, onBack }: FactoryDetailProps) {
   const [showPhone, setShowPhone] = useState(false)
 
+  // FIX: Robust WhatsApp Handler
   const handleWhatsApp = () => {
-    window.open(`https://wa.me/${factory.whatsapp}`, "_blank")
+    if (!factory.whatsapp) {
+      alert("This factory hasn't provided a WhatsApp number yet.")
+      return
+    }
+
+    // Force to string and strip all non-numeric characters
+    const cleanNumber = String(factory.whatsapp).replace(/\D/g, "")
+    
+    const message = encodeURIComponent(
+      `Hello ${factory.name}, I found your listing on Manufacturing.lk and would like to inquire about your services.`
+    )
+
+    if (cleanNumber.length > 5) {
+      // Use direct URL for better compatibility
+      const whatsappUrl = `https://wa.me/${cleanNumber}?text=${message}`
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer")
+    } else {
+      alert("The WhatsApp number in the database is invalid or too short (needs country code).")
+    }
   }
 
   const handleEmail = () => {
@@ -123,7 +142,14 @@ export function FactoryDetail({ factory, onBack }: FactoryDetailProps) {
                       </p>
                     </div>
                   </div>
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
+                  <Button 
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
+                    onClick={() => {
+                      const subject = encodeURIComponent(`Claim Request: ${factory.name}`);
+                      const body = encodeURIComponent(`Hello,\n\nI am the owner or official representative of ${factory.name} and I would like to claim this listing on Manufacturing.lk.\n\nPlease let me know what verification details you need.\n\nThank you.`);
+                      window.location.href = `mailto:hashanm2016@gmail.com?subject=${subject}&body=${body}`;
+                    }}
+                  >
                     Claim This Listing
                   </Button>
                 </CardContent>

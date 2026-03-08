@@ -10,6 +10,7 @@ interface HeroSearchProps {
   onSearchSubmit: () => void
   resultsCount: number
   showResults: boolean
+  onLogoClick?: () => void
 }
 
 export function HeroSearch({
@@ -18,6 +19,7 @@ export function HeroSearch({
   onSearchSubmit,
   resultsCount,
   showResults,
+  onLogoClick,
 }: HeroSearchProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,10 +45,16 @@ export function HeroSearch({
           )}
 
           {showResults && (
-            <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={onLogoClick}
+              className="flex items-center justify-center gap-3 focus:outline-none"
+            >
               <Factory className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-foreground">Manufacturing.lk</span>
-            </div>
+              <span className="text-xl font-bold text-foreground">
+                Manufacturing.lk
+              </span>
+            </button>
           )}
 
           <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto">
