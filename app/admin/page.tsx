@@ -88,7 +88,7 @@ export default function AdminDashboard() {
       .insert([{ 
         name, district, location, industry,
         about, capacity, established: established ? parseInt(established) : null,
-        email, phone, whatsapp, website, // <-- ADDED WEBSITE TO DATABASE INSERT
+        email, phone, whatsapp, website, 
         machinery: formattedMachinery,
         certifications: formattedCertifications,
         products: formattedProducts
@@ -103,9 +103,26 @@ export default function AdminDashboard() {
       // Reset form
       setName(''); setDistrict(''); setLocation(''); setIndustry('');
       setAbout(''); setCapacity(''); setEstablished('');
-      setEmail(''); setPhone(''); setWhatsapp(''); setWebsite(''); // <-- ADDED WEBSITE RESET
+      setEmail(''); setPhone(''); setWhatsapp(''); setWebsite(''); 
       setMachinery(''); setCertifications('');
       setProducts([{ name: '', moq: '' }]);
+      fetchMyFactories() 
+    }
+  }
+
+  // --- NEW VERIFY TOGGLE HANDLER ---
+  const handleToggleVerify = async (id: number, currentIsVerified: boolean) => {
+    const newIsVerified = !currentIsVerified
+    const newStatus = newIsVerified ? 'Verified' : 'Community Sourced'
+    
+    const { error } = await supabase
+      .from('factories')
+      .update({ is_verified: newIsVerified, status: newStatus })
+      .eq('id', id)
+
+    if (error) {
+      alert(`Error updating status: ${error.message}`)
+    } else {
       fetchMyFactories() 
     }
   }
@@ -141,7 +158,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid lg:grid-cols-5 gap-8">
-        {/* LEFT COLUMN: The Expanded Add Form (Takes up 3/5 of the screen) */}
+        {/* LEFT COLUMN: The Expanded Add Form */}
         <div className="lg:col-span-3 bg-white p-8 rounded-lg shadow-sm border border-gray-200 h-fit">
           <h2 className="text-xl font-semibold mb-6">Add a New Factory Profile</h2>
           
@@ -183,7 +200,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Arrays (Comma separated) */}
+            {/* Arrays */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Machinery (Comma separated)</label>
@@ -209,7 +226,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Contact Info - UPDATED TO 2 COLUMNS TO FIT WEBSITE PERFECTLY */}
+            {/* Contact Info */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -235,7 +252,7 @@ export default function AdminDashboard() {
           </form>
         </div>
 
-        {/* RIGHT COLUMN: The Factory List (Takes up 2/5 of the screen) */}
+        {/* RIGHT COLUMN: The Factory List */}
         <div className="lg:col-span-2 bg-white p-8 rounded-lg shadow-sm border border-gray-200">
           <h2 className="text-xl font-semibold mb-6">Manage Existing Factories</h2>
           
@@ -257,16 +274,38 @@ export default function AdminDashboard() {
             ) : (
               filteredFactories.map((factory) => (
                 <div key={factory.id} className="flex justify-between items-center p-4 border border-gray-100 rounded-md bg-gray-50 hover:bg-gray-100 transition">
+                  {/* UPDATE: Added Verified Badge beside name */}
                   <div>
-                    <h3 className="font-semibold text-gray-800">{factory.name}</h3>
-                    <p className="text-xs text-gray-500">{factory.district} • {factory.industry}</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-800">{factory.name}</h3>
+                      {factory.is_verified && (
+                        <span className="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{factory.district} • {factory.industry}</p>
                   </div>
-                  <button 
-                    onClick={() => handleDelete(factory.id, factory.name)}
-                    className="text-red-500 hover:text-red-700 text-sm font-medium px-3 py-1 bg-white border border-red-200 rounded shadow-sm hover:bg-red-50 transition"
-                  >
-                    Delete
-                  </button>
+                  
+                  {/* UPDATE: Approve/Revoke toggle and Delete button */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleToggleVerify(factory.id, factory.is_verified)}
+                      className={`text-sm font-medium px-3 py-1 border rounded shadow-sm transition ${
+                        factory.is_verified 
+                          ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                          : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'
+                      }`}
+                    >
+                      {factory.is_verified ? 'Revoke' : 'Approve'}
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(factory.id, factory.name)}
+                      className="text-red-500 hover:text-red-700 text-sm font-medium px-3 py-1 bg-white border border-red-200 rounded shadow-sm hover:bg-red-50 transition"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))
             )}
