@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Factory } from "@/lib/factories-data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,242 +26,168 @@ import {
   Mail,
   Phone,
   AlertCircle,
+  Globe,
 } from "lucide-react"
 
 interface FactoryDetailProps {
-  factory: Factory
-  onBack: () => void
+  factory: any // Changed to any to handle Supabase data flexibly
 }
 
-export function FactoryDetail({ factory, onBack }: FactoryDetailProps) {
+export function FactoryDetail({ factory }: FactoryDetailProps) {
   const [showPhone, setShowPhone] = useState(false)
 
-  // FIX: Robust WhatsApp Handler
   const handleWhatsApp = () => {
-    if (!factory.whatsapp) {
+    if (!factory?.whatsapp) {
       alert("This factory hasn't provided a WhatsApp number yet.")
       return
     }
-
-    // Force to string and strip all non-numeric characters
     const cleanNumber = String(factory.whatsapp).replace(/\D/g, "")
-    
-    const message = encodeURIComponent(
-      `Hello ${factory.name}, I found your listing on Manufacturing.lk and would like to inquire about your services.`
-    )
-
+    const message = encodeURIComponent(`Hello ${factory.name}, I found your listing on Manufacturing.lk...`)
     if (cleanNumber.length > 5) {
-      // Use direct URL for better compatibility
-      const whatsappUrl = `https://wa.me/${cleanNumber}?text=${message}`
-      window.open(whatsappUrl, "_blank", "noopener,noreferrer")
+      window.open(`https://wa.me/${cleanNumber}?text=${message}`, "_blank", "noopener,noreferrer")
     } else {
-      alert("The WhatsApp number in the database is invalid or too short (needs country code).")
+      alert("Invalid WhatsApp number.")
     }
   }
 
-  const handleEmail = () => {
-    window.open(`mailto:${factory.email}?subject=Inquiry from Manufacturing.lk`, "_blank")
-  }
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <div className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
-          <Button
-            variant="ghost"
-            onClick={onBack}
-            className="gap-2 text-muted-foreground hover:text-foreground"
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to results
-          </Button>
+            <ArrowLeft className="h-4 w-4" /> 
+            Back to directory
+          </Link>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            
             {/* Company Header */}
             <div className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-foreground">{factory.name}</h1>
+                  <h1 className="text-3xl font-bold">{factory?.name ?? "Unnamed Factory"}</h1>
                   <div className="flex items-center gap-2 mt-2 text-muted-foreground">
                     <MapPin className="h-4 w-4" />
-                    <span>{factory.location}, {factory.district}</span>
+                    <span>{factory?.location ?? "No address"}, {factory?.district ?? ""}</span>
                   </div>
                 </div>
-                <Badge
-                  variant={factory.isVerified ? "default" : "secondary"}
-                  className={`text-sm py-1.5 px-3 ${
-                    factory.isVerified
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-secondary text-secondary-foreground"
-                  }`}
-                >
-                  {factory.isVerified ? (
-                    <BadgeCheck className="mr-1.5 h-4 w-4" />
-                  ) : (
-                    <Users className="mr-1.5 h-4 w-4" />
-                  )}
-                  {factory.status}
+                <Badge className={factory?.is_verified ? "bg-primary" : "bg-secondary text-secondary-foreground"}>
+                  {factory?.is_verified ? <BadgeCheck className="mr-1.5 h-4 w-4" /> : <Users className="mr-1.5 h-4 w-4" />}
+                  {factory?.status ?? "Community Sourced"}
                 </Badge>
               </div>
 
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" />
-                  <span>Est. {factory.established}</span>
+                  <span>Est. {factory?.established ?? "Unknown"}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Gauge className="h-4 w-4" />
-                  <span>Capacity: {factory.capacity}</span>
+                  <span>Capacity: {factory?.capacity ?? "Not specified"}</span>
                 </div>
               </div>
 
+              {/* Certifications Array Safety */}
               <div className="flex flex-wrap gap-2">
-                {factory.certifications.map((cert) => (
-                  <Badge key={cert} variant="outline" className="border-border text-foreground">
-                    {cert}
-                  </Badge>
-                ))}
+                {factory?.certifications?.length > 0 ? (
+                  factory.certifications.map((cert: string) => (
+                    <Badge key={cert} variant="outline">{cert}</Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">No certifications listed</span>
+                )}
               </div>
             </div>
 
-            {/* Claim Banner */}
-            {!factory.isVerified && (
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <p className="font-medium text-foreground">Are you the owner?</p>
-                      <p className="text-sm text-muted-foreground">
-                        Claim this listing to update your MOQ and Machinery.
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
-                    onClick={() => {
-                      const subject = encodeURIComponent(`Claim Request: ${factory.name}`);
-                      const body = encodeURIComponent(`Hello,\n\nI am the owner or official representative of ${factory.name} and I would like to claim this listing on Manufacturing.lk.\n\nPlease let me know what verification details you need.\n\nThank you.`);
-                      window.location.href = `mailto:hashanm2016@gmail.com?subject=${subject}&body=${body}`;
-                    }}
-                  >
-                    Claim This Listing
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
             {/* About Section */}
-            <Card className="bg-card">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">About</CardTitle>
-              </CardHeader>
+            <Card>
+              <CardHeader><CardTitle>About</CardTitle></CardHeader>
               <CardContent>
-                <p className="text-muted-foreground leading-relaxed">{factory.about}</p>
+                <p className="text-muted-foreground leading-relaxed">
+                  {factory?.about ?? "No description provided for this factory."}
+                </p>
               </CardContent>
             </Card>
 
-            {/* Products & MOQ Table */}
-            <Card className="bg-card">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">Products & MOQs</CardTitle>
-              </CardHeader>
+            {/* Products & MOQ Table Safety */}
+            <Card>
+              <CardHeader><CardTitle>Products & MOQs</CardTitle></CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border">
-                      <TableHead className="text-muted-foreground">Product</TableHead>
-                      <TableHead className="text-right text-muted-foreground">Minimum Order Quantity</TableHead>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-right">Minimum Order Quantity</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {factory.products.map((product, index) => (
-                      <TableRow key={index} className="border-border">
-                        <TableCell className="font-medium text-card-foreground">{product.name}</TableCell>
-                        <TableCell className="text-right text-card-foreground">
-                          {product.moq.toLocaleString()} units
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {factory?.products?.length > 0 ? (
+                      factory.products.map((product: any, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{product.name ?? "Product"}</TableCell>
+                          <TableCell className="text-right">
+                            {/* FIX: The safety check for toLocaleString() */}
+                            {(product.moq ?? 0).toLocaleString()} units
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground py-4">No products listed</TableCell></TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
 
-            {/* Machinery & Capacity */}
-            <Card className="bg-card">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">Machinery & Capacity</CardTitle>
-              </CardHeader>
+            {/* Machinery Safety */}
+            <Card>
+              <CardHeader><CardTitle>Machinery & Capacity</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {factory.machinery.map((machine, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 p-3 bg-secondary rounded-lg"
-                    >
-                      <div className="h-2 w-2 bg-primary rounded-full" />
-                      <span className="text-secondary-foreground">{machine}</span>
-                    </div>
-                  ))}
-                </div>
-                <Separator className="my-4 bg-border" />
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Monthly Capacity</span>
-                  <span className="font-semibold text-card-foreground">{factory.capacity}</span>
+                  {factory?.machinery?.length > 0 ? (
+                    factory.machinery.map((machine: string, index: number) => (
+                      <div key={index} className="flex items-center gap-2 p-3 bg-secondary rounded-lg">
+                        <div className="h-2 w-2 bg-primary rounded-full" />
+                        <span>{machine}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground italic px-2">Information not provided</span>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Contact Sidebar - Sticky */}
+          {/* Contact Sidebar */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24">
-              <Card className="bg-card">
-                <CardHeader>
-                  <CardTitle className="text-card-foreground">Contact Supplier</CardTitle>
-                </CardHeader>
+            <div className="sticky top-24 space-y-4">
+              <Card>
+                <CardHeader><CardTitle>Contact Supplier</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
-                  <Button
-                    onClick={handleWhatsApp}
-                    className="w-full bg-[#25D366] hover:bg-[#20BD5A] text-white"
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Chat on WhatsApp
+                  <Button onClick={handleWhatsApp} className="w-full bg-[#25D366] hover:bg-[#20BD5A] text-white">
+                    <MessageCircle className="mr-2 h-4 w-4" /> Chat on WhatsApp
                   </Button>
-
-                  <Button
-                    onClick={handleEmail}
-                    variant="outline"
-                    className="w-full border-border text-foreground hover:bg-secondary"
-                  >
-                    <Mail className="mr-2 h-4 w-4" />
-                    Email Inquiry
+                  <Button onClick={() => window.open(`mailto:${factory?.email}`)} variant="outline" className="w-full">
+                    <Mail className="mr-2 h-4 w-4" /> Email Inquiry
                   </Button>
-
-                  <Button
-                    onClick={() => setShowPhone(!showPhone)}
-                    variant="outline"
-                    className="w-full border-border text-foreground hover:bg-secondary"
-                  >
-                    <Phone className="mr-2 h-4 w-4" />
-                    {showPhone ? factory.phone : "Reveal Phone Number"}
+                  <Button onClick={() => setShowPhone(!showPhone)} variant="outline" className="w-full">
+                    <Phone className="mr-2 h-4 w-4" /> {showPhone ? (factory?.phone ?? "N/A") : "Reveal Phone Number"}
                   </Button>
-
-                  <Separator className="my-4 bg-border" />
-
-                  <div className="text-sm text-muted-foreground">
-                    <p className="mb-2">Industry</p>
-                    <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
-                      {factory.industry}
-                    </Badge>
-                  </div>
+                  {factory?.website && (
+                    <Button onClick={() => window.open(factory.website, "_blank")} variant="secondary" className="w-full">
+                      <Globe className="mr-2 h-4 w-4" /> Visit Website
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>

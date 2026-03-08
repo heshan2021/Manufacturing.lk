@@ -2,11 +2,11 @@
 
 import { useState, useMemo, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { supabase } from "@/lib/supabase" // Direct Supabase access
+import Link from "next/link" // <-- ADDED FOR SEO ROUTING
+import { supabase } from "@/lib/supabase" 
 import { HeroSearch } from "@/components/hero-search"
 import { FactoryCard } from "@/components/factory-card"
 import { FilterSidebar } from "@/components/filter-sidebar"
-import { FactoryDetail } from "@/components/factory-detail"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { SlidersHorizontal, Package } from "lucide-react"
@@ -19,13 +19,11 @@ interface Filters {
   certifications: string[]
 }
 
-// Internal component to handle search params and toasts safely
 function HomeContent() {
   const searchParams = useSearchParams()
   const [factories, setFactories] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
-  const [selectedFactory, setSelectedFactory] = useState<any | null>(null)
   const [filters, setFilters] = useState<Filters>({
     industries: [],
     districts: [],
@@ -40,9 +38,8 @@ function HomeContent() {
       const { data, error } = await supabase
         .from('factories')
         .select('*')
-        // We only show Verified or Community Sourced listings to the public
         .in('status', ['Verified', 'Community Sourced'])
-        .order('is_verified', { ascending: false }); // Show verified ones first
+        .order('is_verified', { ascending: false }); 
 
       if (data) setFactories(data);
       if (error) console.error("Error fetching factories:", error);
@@ -63,7 +60,6 @@ function HomeContent() {
   const resetSearch = () => {
     setSearchQuery("")
     setHasSearched(false)
-    setSelectedFactory(null)
     setFilters({
       industries: [],
       districts: [],
@@ -78,11 +74,11 @@ function HomeContent() {
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
         const matchesSearch =
-          factory.name.toLowerCase().includes(query) ||
-          factory.products?.some((p: any) => p.name.toLowerCase().includes(query)) ||
+          factory.name?.toLowerCase().includes(query) ||
+          factory.products?.some((p: any) => p.name?.toLowerCase().includes(query)) ||
           factory.machinery?.some((m: string) => m.toLowerCase().includes(query)) ||
-          factory.industry.toLowerCase().includes(query) ||
-          factory.location.toLowerCase().includes(query)
+          factory.industry?.toLowerCase().includes(query) ||
+          factory.location?.toLowerCase().includes(query)
         if (!matchesSearch) return false
       }
 
@@ -96,7 +92,7 @@ function HomeContent() {
         if (!filters.districts.includes(factory.district)) return false
       }
 
-      // MOQ Range filter (Using products array from JSONB)
+      // MOQ Range filter
       if (filters.moqRange) {
         const minMoq = Math.min(...(factory.products?.map((p: any) => p.moq) || [0]))
         const [min, max] = filters.moqRange.split("-").map((v) => {
@@ -106,7 +102,7 @@ function HomeContent() {
         if (minMoq < min || minMoq > max) return false
       }
 
-      // Certifications filter (Using array from JSONB)
+      // Certifications filter
       if (filters.certifications.length > 0) {
         const hasAllCerts = filters.certifications.every((cert) =>
           factory.certifications?.includes(cert)
@@ -121,15 +117,6 @@ function HomeContent() {
   const handleSearchChange = (query: string) => {
     setSearchQuery(query)
     if (query.length > 0) setHasSearched(true)
-  }
-
-  if (selectedFactory) {
-    return (
-      <FactoryDetail
-        factory={selectedFactory}
-        onBack={() => setSelectedFactory(null)}
-      />
-    )
   }
 
   const activeFilterCount =
@@ -181,11 +168,15 @@ function HomeContent() {
               {filteredFactories.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredFactories.map((factory) => (
-                    <FactoryCard
-                      key={factory.id}
-                      factory={factory}
-                      onClick={() => setSelectedFactory(factory)}
-                    />
+                    // <-- WRAPPED IN LINK USING THE NEW DATABASE SLUG -->
+                    <Link 
+                      href={`/factory/${factory.slug || factory.id}`} 
+                      key={factory.id} 
+                      className="block transition-transform hover:-translate-y-1"
+                    >
+                      {/* Passing empty onClick since Link handles navigation now */}
+                      <FactoryCard factory={factory} onClick={() => {}} />
+                    </Link>
                   ))}
                 </div>
               ) : (
@@ -208,14 +199,14 @@ function HomeContent() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
             {factories.filter(f => f.is_verified).slice(0, 6).map((factory) => (
-              <FactoryCard
-                key={factory.id}
-                factory={factory}
-                onClick={() => {
-                  setSelectedFactory(factory)
-                  setHasSearched(true)
-                }}
-              />
+              // <-- WRAPPED IN LINK USING THE NEW DATABASE SLUG -->
+              <Link 
+                href={`/factory/${factory.slug || factory.id}`} 
+                key={factory.id} 
+                className="block transition-transform hover:-translate-y-1"
+              >
+                <FactoryCard factory={factory} onClick={() => {}} />
+              </Link>
             ))}
           </div>
         </div>

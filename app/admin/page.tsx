@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
-  const [website, setWebsite] = useState('') // <-- ADDED WEBSITE STATE
+  const [website, setWebsite] = useState('')
 
   // --- NEW ARRAYS (Machinery & Certifications as comma-separated text) ---
   const [machinery, setMachinery] = useState('') 
@@ -63,7 +63,6 @@ export default function AdminDashboard() {
     router.push('/login')
   }
 
-  // Handle dynamic product changes
   const updateProduct = (index: number, field: 'name' | 'moq', value: string) => {
     const newProducts = [...products]
     newProducts[index][field] = value
@@ -74,11 +73,16 @@ export default function AdminDashboard() {
     e.preventDefault()
     setIsSubmitting(true)
 
+    // --- NEW: Generate a clean SEO slug ---
+    const generatedSlug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-') 
+      .replace(/(^-|-$)+/g, '')
+
     // Format the arrays properly for Supabase JSONB columns
     const formattedMachinery = machinery.split(',').map(item => item.trim()).filter(Boolean)
     const formattedCertifications = certifications.split(',').map(item => item.trim()).filter(Boolean)
-    
-    // Filter out empty product rows and format MOQ as a number
     const formattedProducts = products
       .filter(p => p.name.trim() !== '')
       .map(p => ({ name: p.name.trim(), moq: parseInt(p.moq) || 0 }))
@@ -86,12 +90,16 @@ export default function AdminDashboard() {
     const { error } = await supabase
       .from('factories')
       .insert([{ 
-        name, district, location, industry,
+        name, 
+        slug: generatedSlug, // <-- ADDED SLUG TO INSERT
+        district, location, industry,
         about, capacity, established: established ? parseInt(established) : null,
         email, phone, whatsapp, website, 
         machinery: formattedMachinery,
         certifications: formattedCertifications,
-        products: formattedProducts
+        products: formattedProducts,
+        status: 'Verified', // Admins default to verified
+        is_verified: true
       }])
 
     setIsSubmitting(false)
@@ -110,7 +118,6 @@ export default function AdminDashboard() {
     }
   }
 
-  // --- NEW VERIFY TOGGLE HANDLER ---
   const handleToggleVerify = async (id: number, currentIsVerified: boolean) => {
     const newIsVerified = !currentIsVerified
     const newStatus = newIsVerified ? 'Verified' : 'Community Sourced'
@@ -158,12 +165,10 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid lg:grid-cols-5 gap-8">
-        {/* LEFT COLUMN: The Expanded Add Form */}
         <div className="lg:col-span-3 bg-white p-8 rounded-lg shadow-sm border border-gray-200 h-fit">
           <h2 className="text-xl font-semibold mb-6">Add a New Factory Profile</h2>
           
           <form onSubmit={handleAddFactory} className="space-y-6">
-            {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Factory Name *</label>
@@ -183,7 +188,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* About & Stats */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">About</label>
               <textarea value={about} onChange={(e) => setAbout(e.target.value)} className="w-full p-2 border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500 h-20" placeholder="Brief description of the factory..." />
@@ -200,7 +204,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Arrays */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Machinery (Comma separated)</label>
@@ -212,7 +215,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Products Array */}
             <div className="bg-gray-50 p-4 rounded border border-gray-200">
               <label className="block text-sm font-medium text-gray-700 mb-2">Products & MOQs</label>
               {products.map((product, index) => (
@@ -226,7 +228,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Contact Info */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -252,7 +253,6 @@ export default function AdminDashboard() {
           </form>
         </div>
 
-        {/* RIGHT COLUMN: The Factory List */}
         <div className="lg:col-span-2 bg-white p-8 rounded-lg shadow-sm border border-gray-200">
           <h2 className="text-xl font-semibold mb-6">Manage Existing Factories</h2>
           
@@ -274,7 +274,6 @@ export default function AdminDashboard() {
             ) : (
               filteredFactories.map((factory) => (
                 <div key={factory.id} className="flex justify-between items-center p-4 border border-gray-100 rounded-md bg-gray-50 hover:bg-gray-100 transition">
-                  {/* UPDATE: Added Verified Badge beside name */}
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-gray-800">{factory.name}</h3>
@@ -287,7 +286,6 @@ export default function AdminDashboard() {
                     <p className="text-xs text-gray-500 mt-1">{factory.district} • {factory.industry}</p>
                   </div>
                   
-                  {/* UPDATE: Approve/Revoke toggle and Delete button */}
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => handleToggleVerify(factory.id, factory.is_verified)}
