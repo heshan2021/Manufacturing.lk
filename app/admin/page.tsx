@@ -23,6 +23,7 @@ export default function AdminDashboard() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
+  const [website, setWebsite] = useState('') // <-- ADDED WEBSITE STATE
 
   // --- NEW ARRAYS (Machinery & Certifications as comma-separated text) ---
   const [machinery, setMachinery] = useState('') 
@@ -87,7 +88,7 @@ export default function AdminDashboard() {
       .insert([{ 
         name, district, location, industry,
         about, capacity, established: established ? parseInt(established) : null,
-        email, phone, whatsapp,
+        email, phone, whatsapp, website, // <-- ADDED WEBSITE TO DATABASE INSERT
         machinery: formattedMachinery,
         certifications: formattedCertifications,
         products: formattedProducts
@@ -102,7 +103,7 @@ export default function AdminDashboard() {
       // Reset form
       setName(''); setDistrict(''); setLocation(''); setIndustry('');
       setAbout(''); setCapacity(''); setEstablished('');
-      setEmail(''); setPhone(''); setWhatsapp('');
+      setEmail(''); setPhone(''); setWhatsapp(''); setWebsite(''); // <-- ADDED WEBSITE RESET
       setMachinery(''); setCertifications('');
       setProducts([{ name: '', moq: '' }]);
       fetchMyFactories() 
@@ -208,8 +209,8 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Contact Info */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Contact Info - UPDATED TO 2 COLUMNS TO FIT WEBSITE PERFECTLY */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-2 border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500" />
@@ -221,6 +222,10 @@ export default function AdminDashboard() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
                 <input type="text" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="w-full p-2 border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500" placeholder="Include country code" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full p-2 border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://www.company.lk" />
               </div>
             </div>
 
