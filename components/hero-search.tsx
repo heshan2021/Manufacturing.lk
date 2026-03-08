@@ -3,6 +3,7 @@
 import { Search, Factory } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import Link from "next/link" // Import Link for global navigation
 
 interface HeroSearchProps {
   searchQuery: string
@@ -30,31 +31,25 @@ export function HeroSearch({
     <div className={`bg-card border-b border-border transition-all duration-300 ${showResults ? 'py-6' : 'py-16 md:py-24'}`}>
       <div className="container mx-auto px-4">
         <div className={`max-w-4xl mx-auto text-center ${showResults ? 'space-y-4' : 'space-y-8'}`}>
-          {!showResults && (
-            <>
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <Factory className="h-10 w-10 text-primary" />
-                <h1 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight">
-                  Manufacturing.lk
-                </h1>
-              </div>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
-                Sri Lanka&apos;s trusted B2B manufacturing directory. Find verified factories, compare MOQs, and connect with suppliers.
-              </p>
-            </>
-          )}
-
-          {showResults && (
-            <button
-              type="button"
-              onClick={onLogoClick}
-              className="flex items-center justify-center gap-3 focus:outline-none"
+          
+          {/* LOGO SECTION: Wrapped in Link to ensure it works on every page */}
+          <div className="flex items-center justify-center">
+            <Link 
+              href="/" 
+              onClick={onLogoClick} // Still calls reset logic if on home page
+              className="flex items-center justify-center gap-3 group"
             >
-              <Factory className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-foreground">
+              <Factory className={`text-primary transition-transform group-hover:scale-110 ${showResults ? 'h-6 w-6' : 'h-10 w-10'}`} />
+              <h1 className={`font-bold text-foreground tracking-tight transition-all ${showResults ? 'text-xl' : 'text-4xl md:text-5xl'}`}>
                 Manufacturing.lk
-              </span>
-            </button>
+              </h1>
+            </Link>
+          </div>
+
+          {!showResults && (
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
+              Sri Lanka&apos;s trusted B2B manufacturing directory. Find verified factories, compare MOQs, and connect with suppliers.
+            </p>
           )}
 
           <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto">
@@ -86,6 +81,7 @@ export function HeroSearch({
             <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground">
               <span>Popular:</span>
               <button
+                type="button"
                 onClick={() => onSearchChange("T-Shirts")}
                 className="text-primary hover:underline"
               >
@@ -93,6 +89,7 @@ export function HeroSearch({
               </button>
               <span>·</span>
               <button
+                type="button"
                 onClick={() => onSearchChange("Rubber")}
                 className="text-primary hover:underline"
               >
@@ -100,6 +97,7 @@ export function HeroSearch({
               </button>
               <span>·</span>
               <button
+                type="button"
                 onClick={() => onSearchChange("Tea")}
                 className="text-primary hover:underline"
               >

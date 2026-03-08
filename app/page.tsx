@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, Suspense } from "react"
+import { useState, useMemo, useEffect, Suspense, useRef } from "react" // Added useRef
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase" 
@@ -9,7 +9,7 @@ import { FactoryCard } from "@/components/factory-card"
 import { FilterSidebar } from "@/components/filter-sidebar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { SlidersHorizontal, Package, Star } from "lucide-react" // Added Star icon
+import { SlidersHorizontal, Package, Star, ArrowUp } from "lucide-react"
 import { toast } from "sonner"
 
 interface Filters {
@@ -21,8 +21,10 @@ interface Filters {
 
 function HomeContent() {
   const searchParams = useSearchParams()
+  const resultsRef = useRef<HTMLDivElement>(null) // Reference for the top of the results
+  
   const [factories, setFactories] = useState<any[]>([])
-  const [loading, setLoading] = useState(true) // Added loading state
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
   const [filters, setFilters] = useState<Filters>({
@@ -33,7 +35,6 @@ function HomeContent() {
   })
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
-  // 1. Fetch live data from Supabase
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
@@ -47,18 +48,17 @@ function HomeContent() {
       if (error) console.error("Error fetching factories:", error);
       setLoading(false)
     };
-
     loadData();
   }, []);
 
-  // 2. Handle Success Toast from /submit
-  useEffect(() => {
-    if (searchParams.get("success") === "true") {
-      toast.success("Submission received!", {
-        description: "Thank you for listing your company. Our team will review it shortly.",
-      });
-    }
-  }, [searchParams]);
+  // Helper to trigger search and scroll to top of content
+  const showAllResults = () => {
+    setHasSearched(true)
+    // Small timeout to allow the DOM to update before scrolling
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 10);
+  }
 
   const resetSearch = () => {
     setSearchQuery("")
@@ -69,6 +69,7 @@ function HomeContent() {
       moqRange: null,
       certifications: [],
     })
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   const filteredFactories = useMemo(() => {
@@ -112,10 +113,9 @@ function HomeContent() {
     })
   }, [factories, searchQuery, filters])
 
-  // Get only verified factories for the "Featured" section on the home screen
   const featuredFactories = useMemo(() => {
     return factories
-      .filter(f => f.is_verified)
+      .filter(f => f.is_featured === true)
       .slice(0, 6)
   }, [factories])
 
@@ -142,7 +142,7 @@ function HomeContent() {
       />
 
       {hasSearched ? (
-        <div className="container mx-auto px-4 py-6">
+        <div ref={resultsRef} className="container mx-auto px-4 py-6 scroll-mt-20">
           <div className="flex gap-6">
             <aside className="hidden lg:block w-72 shrink-0">
               <div className="sticky top-6 border border-border rounded-lg overflow-hidden">
@@ -203,23 +203,34 @@ function HomeContent() {
           </div>
           
           {loading ? (
-            <div className="text-center py-12">Loading listings...</div>
+            <div className="text-center py-12 text-muted-foreground italic">Fetching premium manufacturers...</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
-              {featuredFactories.map((factory) => (
-                <Link 
-                  href={`/factory/${factory.slug || factory.id}`} 
-                  key={factory.id} 
-                  className="block transition-transform hover:-translate-y-1"
-                >
-                  <FactoryCard factory={factory} onClick={() => {}} />
-                </Link>
-              ))}
+              {featuredFactories.length > 0 ? (
+                featuredFactories.map((factory) => (
+                  <Link 
+                    href={`/factory/${factory.slug || factory.id}`} 
+                    key={factory.id} 
+                    className="block transition-transform hover:-translate-y-1"
+                  >
+                    <FactoryCard factory={factory} onClick={() => {}} />
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  No featured listings yet.
+                </div>
+              )}
             </div>
           )}
           
           <div className="mt-12 text-center">
-             <Button variant="secondary" onClick={() => setHasSearched(true)}>
+             <Button 
+                variant="secondary" 
+                size="lg"
+                onClick={showAllResults} // Changed to new scroll helper
+                className="rounded-full px-8 shadow-sm hover:shadow-md transition-all"
+              >
                 View All Manufacturers
              </Button>
           </div>
@@ -227,11 +238,11 @@ function HomeContent() {
       )}
 
       <footer className="border-t border-border bg-card mt-12">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-primary" />
-              <span className="font-semibold text-foreground text-lg">Manufacturing.lk</span>
+              <Package className="h-6 w-6 text-primary" />
+              <span className="font-bold text-foreground text-xl tracking-tight">Manufacturing.lk</span>
             </div>
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} Manufacturing.lk. Sri Lanka&apos;s leading B2B Directory.
